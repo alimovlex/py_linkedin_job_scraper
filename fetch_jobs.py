@@ -1,9 +1,15 @@
+#!/usr/bin/env python3
+
 import os
 import time
 import json
 
 from linkedin_scraper import JobSearch
 from selenium import webdriver
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.chrome.options import Options
+from selenium.webdriver.chrome.service import Service
+from webdriver_manager.chrome import ChromeDriverManager
 
 JOB_RESULTS_STORE_FILENAME = "job_listings.json"
 
@@ -38,12 +44,13 @@ def process_results(results=[]):
         }
 
         processed_results.append(job_details)
-
+        print(processed_results)
     return processed_results
 
 
 def save_results(results):
     results_string = json.dumps({"results": process_results(results)})
+    print(results_string)
     try:
         with open(os.path.join(os.getcwd(), JOB_RESULTS_STORE_FILENAME), "x") as file:
             file.write(results_string)
@@ -57,8 +64,13 @@ def main():
     session_info_text = f.readline()
     cookies_dict = json.loads(session_info_text)
     cookies = cookies_dict["cookies"]
+    
+    options = Options()
+    options.add_argument('--headless') # Comment out if you wish to see it.
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
 
-    new_driver = webdriver.Chrome()
+    new_driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
     new_driver.set_window_size(1600, 1000)
     new_driver.get("https://www.linkedin.com/login")
 
@@ -79,8 +91,9 @@ def main():
             job_search = JobSearch(driver=new_driver, base_url=url, close_on_complete=False, scrape=False)
             job_listings = job_listings + job_search.search()
             print("Fetched results")
+            print(job_listings)
             current_page += 1
-
+            
         save_results(job_listings)
 
 
